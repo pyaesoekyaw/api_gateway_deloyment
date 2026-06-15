@@ -1,80 +1,216 @@
-# api_gateway_deloyment
-Step 1: Set Up Your DynamoDB Table
-Before the Lambda function can verify anything, it needs a place to check the keys.
+# API Gateway Deployment with Lambda Authorizer and DynamoDB
 
-Go to the DynamoDB Console in AWS.
+This guide explains how to configure a custom Lambda Authorizer for Amazon API Gateway using DynamoDB to validate API keys.
 
-Click Create table.
-Table name: ApiKeysTable (or a name of your choice).
-Partition key (Hash Key): ApiKey (String).
-Leave settings as default and click Create table.
-Once created, add a test item. Click Explore table items -> Create item. Set ApiKey to my-secret-hash-token and add a boolean attribute isActive set to true.
+---
 
-Step 2: Create the IAM Role for Your Lambda
-Your Lambda needs permission to read from DynamoDB, write logs to CloudWatch, and run inside a VPC.
-Go to the IAM Console -> Roles -> Create role.
-Select AWS Service -> Lambda.
-Attach the following policies:
-AWSLambdaVPCAccessExecutionRole (Required because your diagram shows Lambda in a Private Subnet).
-AmazonDynamoDBReadOnlyAccess (To read the hash keys).
-VPCFullAccess
+## Prerequisites
 
-Step 3: Write the Lambda Authorizer Code
-Go to the Lambda Console -> Create function.
+* Amazon API Gateway
+* AWS Lambda
+* Amazon DynamoDB
+* Amazon VPC
+* IAM permissions to create and manage AWS resources
 
-Choose Author from scratch, name it ApiGatewayAuthorizer, choose Python 3.12 (or your preferred version), and assign the IAM role you just created.
+---
 
-Under Advanced settings (or Configuration -> VPC), attach the function to your VPC, selecting the Private Subnets shown in your diagram, and assign a Security Group that allows outbound HTTPS traffic.
+## Step 1: Create the DynamoDB Table
 
-Replace the default code with the following Python script: Lambda_authorizer.py
+The Lambda Authorizer validates API keys against records stored in DynamoDB.
 
-Go to the Configuration tab.
+### Create the Table
 
-Click General configuration on the left.
+1. Open the **AWS DynamoDB Console**.
+2. Click **Create Table**.
+3. Configure the table:
 
-Click Edit.
+| Setting       | Value             |
+| ------------- | ----------------- |
+| Table Name    | `ApiKeysTable`    |
+| Partition Key | `ApiKey` (String) |
 
-Change the Timeout from 3 seconds to 10 seconds.
+4. Leave the remaining settings as default.
+5. Click **Create Table**.
 
-Click Save.
+### Add a Test Record
 
-How to Create a DynamoDB VPC Endpoint
-Step 1: Navigate to Endpoints
+1. Open the newly created table.
+2. Select **Explore Table Items**.
+3. Click **Create Item**.
+4. Add the following attributes:
 
-Open the AWS VPC Console.
+```json
+{
+  "ApiKey": "my-secret-hash-token",
+  "isActive": true
+}
+```
 
-On the left-hand navigation pane, scroll down and click on Endpoints.
+---
 
-Click the orange Create endpoint button.
+## Step 2: Create the IAM Role for Lambda
 
-Step 2: Configure the Endpoint
+The Lambda Authorizer requires permissions to:
 
-Name tag: Give it a name like DynamoDB-Endpoint.
+* Read API keys from DynamoDB
+* Write logs to CloudWatch
+* Access resources within a VPC
 
-Service category: Leave it as AWS services.
+### Create the Role
 
-Services: In the search box, type dynamodb and press Enter.
+1. Open the **IAM Console**.
+2. Navigate to **Roles** → **Create Role**.
+3. Select:
 
-Type: Gateway
-Step 3: Attach to Your Network
+   * **Trusted Entity Type:** AWS Service
+   * **Use Case:** Lambda
+4. Attach the following policies:
 
-VPC: Select the VPC where your Lambda Authorizer is running.
+* `AWSLambdaVPCAccessExecutionRole`
+* `AmazonDynamoDBReadOnlyAccess`
+* `VPCFullAccess`
 
-Route tables: private route table
+5. Complete the role creation process.
 
-Step 4: Configure API Gateway
-Now you need to tell API Gateway to use this function.  
+> **Note:** For production environments, follow the principle of least privilege and avoid using broad permissions such as `VPCFullAccess`.
 
-Go to the API Gateway Console and select your API.  
+---
 
-In the left menu, click Authorizers -> Create New Authorizer.  
+## Step 3: Create the Lambda Authorizer
 
-Name: MyCustomAuthorizer.  
+### Create the Function
 
-Type: Lambda.  
+1. Open the **AWS Lambda Console**.
+2. Click **Create Function**.
+3. Select **Author from Scratch**.
+4. Configure:
 
-Lambda Function: Select the ApiGatewayAuthorizer function you just created.
-Lambda Event Payload: Token
-Token source : authorizationToken
+| Setting        | Value                      |
+| -------------- | -------------------------- |
+| Function Name  | `ApiGatewayAuthorizer`     |
+| Runtime        | Python 3.12                |
+| Execution Role | IAM role created in Step 2 |
 
-Click Create and test it directly in the console using your test token.
+### Configure VPC Settings
+
+1. Open **Configuration** → **VPC**.
+2. Attach the function to:
+
+   * Your target VPC
+   * Private subnets
+   * A security group allowing outbound HTTPS traffic
+
+### Deploy the Authorizer Code
+
+Replace the default Lambda code with the contents of:
+
+```text
+Lambda_authorizer.py
+```
+
+### Increase Lambda Timeout
+
+1. Open **Configuration** → **General Configuration**.
+2. Click **Edit**.
+3. Change the timeout value:
+
+| Setting | Value      |
+| ------- | ---------- |
+| Timeout | 10 seconds |
+
+4. Click **Save**.
+
+---
+
+## Step 4: Create a DynamoDB VPC Endpoint
+
+Because the Lambda function runs inside private subnets, a DynamoDB VPC Endpoint is required for DynamoDB access without internet connectivity.
+
+### Create the Endpoint
+
+1. Open the **Amazon VPC Console**.
+2. Navigate to **Endpoints**.
+3. Click **Create Endpoint**.
+
+### Configure the Endpoint
+
+| Setting          | Value               |
+| ---------------- | ------------------- |
+| Name Tag         | `DynamoDB-Endpoint` |
+| Service Category | AWS Services        |
+| Service          | DynamoDB            |
+| Endpoint Type    | Gateway             |
+
+### Attach to the Network
+
+| Setting      | Value                  |
+| ------------ | ---------------------- |
+| VPC          | Lambda VPC             |
+| Route Tables | Private Route Table(s) |
+
+4. Create the endpoint.
+
+---
+
+## Step 5: Configure API Gateway Authorizer
+
+Configure API Gateway to use the Lambda function for request authorization.
+
+### Create the Authorizer
+
+1. Open the **API Gateway Console**.
+2. Select your API.
+3. Navigate to **Authorizers**.
+4. Click **Create Authorizer**.
+
+### Configure Authorizer Settings
+
+| Setting              | Value                  |
+| -------------------- | ---------------------- |
+| Name                 | `MyCustomAuthorizer`   |
+| Authorizer Type      | Lambda                 |
+| Lambda Function      | `ApiGatewayAuthorizer` |
+| Lambda Event Payload | Token                  |
+| Token Source         | `authorizationToken`   |
+
+5. Click **Create Authorizer**.
+
+### Test the Authorizer
+
+1. Open the newly created authorizer.
+2. Click **Test**.
+3. Provide a valid API key (for example, `my-secret-hash-token`).
+4. Verify that authorization succeeds.
+
+---
+
+## Architecture Flow
+
+```text
+Client Request
+      |
+      v
+API Gateway
+      |
+      v
+Lambda Authorizer
+      |
+      v
+DynamoDB (ApiKeysTable)
+      |
+      v
+Allow / Deny Request
+      |
+      v
+Backend Integration
+```
+
+---
+
+## Security Recommendations
+
+* Use least-privilege IAM permissions instead of broad managed policies.
+* Store hashed API keys instead of plain-text values.
+* Enable CloudWatch logging for monitoring and troubleshooting.
+* Rotate API keys regularly.
+* Enable API Gateway throttling and request validation where applicable.
