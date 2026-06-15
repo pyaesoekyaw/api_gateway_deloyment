@@ -41,7 +41,7 @@ The Lambda Authorizer validates API keys against records stored in DynamoDB.
 
 ```json
 {
-  "ApiKey": "my-secret-hash-token",
+  "ApiKey": "my-secret-hash-token", #hash file of API Key
   "isActive": true
 }
 ```
