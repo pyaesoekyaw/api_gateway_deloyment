@@ -172,6 +172,7 @@ Configure API Gateway to use the Lambda function for request authorization.
 | Lambda Function      | `ApiGatewayAuthorizer` |
 | Lambda Event Payload | Token                  |
 | Token Source         | `authorizationToken`   |
+| TTL                  | 1                      |
 
 5. Click **Create Authorizer**.
 
