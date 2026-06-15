@@ -183,35 +183,178 @@ Configure API Gateway to use the Lambda function for request authorization.
 3. Provide a valid API key (for example, `my-secret-hash-token`).
 4. Verify that authorization succeeds.
 
+## Step 6: Attach the Lambda Authorizer and Configure Request Validation
+
+This step configures API Gateway to use the Lambda Authorizer and enforces required request headers.
+
+### Attach the Authorizer
+
+1. Open the **API Gateway Console**.
+2. Select your API.
+3. Navigate to **Resources**.
+4. Select the target method (GET, POST, etc.).
+5. Click **Method Request**.
+
+### Configure Authorization
+
+1. In the **Settings** section, locate **Authorization**.
+2. Click the **Edit** (pencil) icon.
+3. Select your Lambda Authorizer (for example, `MyCustomAuthorizer`).
+4. Save the configuration.
+
+### Enable Request Validation
+
+1. Locate **Request Validator**.
+2. Change the value from:
+
+```text
+NONE
+```
+
+to:
+
+```text
+Validate query string parameters and headers
+```
+
+3. Save the changes.
+
+### Add Required HTTP Headers
+
+1. Expand the **HTTP Request Headers** section.
+2. Click **Add Header**.
+3. Enter the header name:
+
+```text
+X-Client-Version
+```
+
+4. Enable the **Required** checkbox.
+5. Save the configuration.
+
+> Requests that do not include the required header will be rejected by API Gateway before reaching the backend service.
+
 ---
 
-## Architecture Flow
+## Deploy the API
+
+After making configuration changes:
+
+1. Return to the **Method Execution** dashboard.
+2. Click **Deploy API**.
+3. Select the target stage (for example, `dev`, `uat`, or `prod`).
+4. Click **Deploy**.
+
+---
+
+## Testing API Key and Header Validation
+
+### Test GET Request
+
+Open **Postman** and create a GET request.
+
+**URL**
+
+```text
+https://<api-id>.execute-api.<region>.amazonaws.com/<stage>/<resource>
+```
+
+**Headers**
+
+| Header             | Value                |
+| ------------------ | -------------------- |
+| authorizationToken | my-secret-hash-token |
+| X-Client-Version   | 1.0.0                |
+
+Click **Send**.
+
+Expected result:
+
+* Lambda Authorizer validates the API key from DynamoDB.
+* API Gateway validates the required header.
+* Request is forwarded to the backend service.
+
+---
+
+### Test POST Request
+
+Open **Postman** and create a POST request.
+
+**URL**
+
+```text
+https://<api-id>.execute-api.<region>.amazonaws.com/<stage>/<resource>
+```
+
+**Headers**
+
+| Header             | Value                |
+| ------------------ | -------------------- |
+| authorizationToken | my-secret-hash-token |
+| X-Client-Version   | 1.0.0                |
+
+**Body**
+
+Select:
+
+```text
+Body → raw → JSON
+```
+
+Example payload:
+
+```json
+{
+  "message": "Updated data"
+}
+```
+
+Click **Send**.
+
+Expected result:
+
+* Lambda Authorizer validates the API key.
+* API Gateway validates required headers.
+* Request payload is processed by the backend integration.
+
+---
+
+## Validation Scenarios
+
+| Scenario                          | Expected Result          |
+| --------------------------------- | ------------------------ |
+| Valid API key and required header | Request succeeds         |
+| Missing `authorizationToken`      | Authorization fails      |
+| Invalid API key                   | Authorization fails      |
+| Missing `X-Client-Version` header | Request validation fails |
+| Inactive API key in DynamoDB      | Authorization fails      |
+
+---
+
+## Request Flow
 
 ```text
 Client Request
       |
+      +--> authorizationToken Header
+      |
+      +--> X-Client-Version Header
+      |
       v
 API Gateway
+      |
+      +--> Request Validation
       |
       v
 Lambda Authorizer
       |
       v
-DynamoDB (ApiKeysTable)
+DynamoDB API Key Lookup
       |
       v
-Allow / Deny Request
+Allow / Deny
       |
       v
-Backend Integration
+Backend Service
 ```
-
----
-
-## Security Recommendations
-
-* Use least-privilege IAM permissions instead of broad managed policies.
-* Store hashed API keys instead of plain-text values.
-* Enable CloudWatch logging for monitoring and troubleshooting.
-* Rotate API keys regularly.
-* Enable API Gateway throttling and request validation where applicable.
+### Thank You
