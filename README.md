@@ -45,7 +45,7 @@ The Lambda Authorizer validates API keys against records stored in DynamoDB.
   "isActive": true
 }
 ```
-
+### For ApiKey Encryption(SHA256) : https://it-tools.tech/hash-text
 ---
 
 ## Step 2: Create the IAM Role for Lambda
@@ -88,7 +88,7 @@ The Lambda Authorizer requires permissions to:
 | Setting        | Value                      |
 | -------------- | -------------------------- |
 | Function Name  | `ApiGatewayAuthorizer`     |
-| Runtime        | Python 3.12                |
+| Runtime        | Python 3.14                |
 | Execution Role | IAM role created in Step 2 |
 
 ### Configure VPC Settings
@@ -116,7 +116,7 @@ Lambda_authorizer.py
 
 | Setting | Value      |
 | ------- | ---------- |
-| Timeout | 10 seconds |
+| Timeout | 1 minutes  |
 
 4. Click **Save**.
 
