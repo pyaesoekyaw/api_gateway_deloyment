@@ -28,3 +28,53 @@ Under Advanced settings (or Configuration -> VPC), attach the function to your V
 
 Replace the default code with the following Python script: Lambda_authorizer.py
 
+Go to the Configuration tab.
+
+Click General configuration on the left.
+
+Click Edit.
+
+Change the Timeout from 3 seconds to 10 seconds.
+
+Click Save.
+
+How to Create a DynamoDB VPC Endpoint
+Step 1: Navigate to Endpoints
+
+Open the AWS VPC Console.
+
+On the left-hand navigation pane, scroll down and click on Endpoints.
+
+Click the orange Create endpoint button.
+
+Step 2: Configure the Endpoint
+
+Name tag: Give it a name like DynamoDB-Endpoint.
+
+Service category: Leave it as AWS services.
+
+Services: In the search box, type dynamodb and press Enter.
+
+Type: Gateway
+Step 3: Attach to Your Network
+
+VPC: Select the VPC where your Lambda Authorizer is running.
+
+Route tables: private route table
+
+Step 4: Configure API Gateway
+Now you need to tell API Gateway to use this function.  
+
+Go to the API Gateway Console and select your API.  
+
+In the left menu, click Authorizers -> Create New Authorizer.  
+
+Name: MyCustomAuthorizer.  
+
+Type: Lambda.  
+
+Lambda Function: Select the ApiGatewayAuthorizer function you just created.
+Lambda Event Payload: Token
+Token source : authorizationToken
+
+Click Create and test it directly in the console using your test token.
