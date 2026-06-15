@@ -17,7 +17,7 @@ Select AWS Service -> Lambda.
 Attach the following policies:
 AWSLambdaVPCAccessExecutionRole (Required because your diagram shows Lambda in a Private Subnet).
 AmazonDynamoDBReadOnlyAccess (To read the hash keys).
-VPCNetwork
+VPCFullAccess
 
 Step 3: Write the Lambda Authorizer Code
 Go to the Lambda Console -> Create function.
@@ -26,4 +26,5 @@ Choose Author from scratch, name it ApiGatewayAuthorizer, choose Python 3.12 (or
 
 Under Advanced settings (or Configuration -> VPC), attach the function to your VPC, selecting the Private Subnets shown in your diagram, and assign a Security Group that allows outbound HTTPS traffic.
 
-Replace the default code with the following Python script:
+Replace the default code with the following Python script: Lambda_authorizer.py
+
